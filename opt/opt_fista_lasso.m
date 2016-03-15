@@ -1,4 +1,4 @@
-function x = opt_ista_lasso(h,y,x0,opt,hfun)
+function x = opt_fista_lasso(h,y,x0,opt,hfun)
 % The objective function: F(x) = 1/2 ||y - hx||^2 + lambda |x|
 % Input: 
 %   h: impulse response (lexicographically arranged)
@@ -11,7 +11,7 @@ function x = opt_ista_lasso(h,y,x0,opt,hfun)
 %
 % Author: Seunghwan Yoo
 
-fprintf(' - Running ISTA Method\n');
+fprintf(' - Running FISTA Method\n');
 
 A = h; b = y;
 AtA = A'*A;
@@ -28,16 +28,23 @@ vis = opt.vis;
 objk  = func(x0,b,A,lambda);
 %gradk = grad(x0,b,A);
 xk = x0;
+yk = xk;
+%tk = 1;
 
-tic;
 fprintf('%6s %9s %9s\n','iter','f','sparsity');
 fprintf('%6i %9.2e %9.2e\n',0,objk,nnz(xk)/numel(xk));
+tic;
 for i = 1:maxiter
     x_old = xk;
-    
-    y = xk - l*(AtA*xk-A'*b); 
-    %y = xk - l*A'*(A*xk-b);
-    xk = subplus(abs(y)-lambda/L) .* sign(y); % shrinkage operation
+    y_old = yk;
+    %t_old = tk;
+
+    yg = y_old - l*(AtA*y_old-A'*b); 
+    %yg = y_old - l*A'*(A*y_old-b);
+    xk = subplus(abs(yg)-lambda/L) .* sign(yg); % shrinkage operation
+    %tk = (1+sqrt(1+4*t_old*t_old))/2;
+    %yk = xk + (t_old-1)/tk*(xk-x_old);
+    yk = xk + i/(i+3) * (xk-x_old);
 
     if vis > 0
         fprintf('%6i %9.2e %9.2e\n',i,func(xk,b,A,lambda),nnz(xk)/numel(xk));

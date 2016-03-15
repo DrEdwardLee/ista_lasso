@@ -1,17 +1,25 @@
 % This is Iterative Shrinkage Thresholding Algorithm (ISTA) for solving 
 % LASSO problem. LASSO problem assumes that signal x be sparse, and this
 % assumption is not wrong. Most natural siggnal can be represented sparse
-% in some domain. For example, natural scenes are sparse in Fourier
+% in some domain. For example, natural scenes are sparse in Wavelet
 % transform domain or DCT domain. Sometimes the scene itself can be very
 % sparse (e.g. stars at night).
 %
-% Here we will compare the LASSO problem with ISTA to CLS problem with CG.
-% You will see CLS won't work well for the sparse signal.
+% ISTA is a first-order method which is gradient-based so it is simple
+% and efficient. However, its convergence is slow - O(1/k). A fast ISTA
+% (FISTA) is developed for faster convergence, which gives an improved
+% complexity, O(1/(k^2)).
 %
-% Degradation model: y = Hx = HPb = Ab 
-%            where A = HP, P:representation matrix (P = I in my example)
-% Deconvolution:
-%      LASSO: min_x ||y-Ab||2 + lambda*||b||1
+% Here we will compare the LASSO problem with ISTA and FISTA to CLS problem
+% with CG. You will see ISTA and FISTA work well on the sparse signal while
+% CLS doesn't. You will see the improved performance of FISTA over ISTA as 
+% well.
+%
+%  Degradation model (sparse model): 
+%      y = Hx = HPb = Ab
+%    , where A = HP, P:representation matrix (P = I in my example)
+%  Deconvolution (LASSO): 
+%      min_x ||y-Ab||2 + lambda*||b||1
 %
 % Author: Seunghwan Yoo (seunghwanyoo2013@u.northwestern.edu)
 
@@ -29,8 +37,9 @@ if param.obs == 1
     end
     x_2d = x0_whole(201:220,201:220); % original image (20x20)
 elseif param.obs == 2
-    sparsity = 0.02;
-    x_2d = obj_sparse(sparsity,20,20);
+    sparsity = 0.01;
+    %x_2d = obj_sparse(sparsity,20,20);
+    load x_2d;
 end
 x = x_2d(:); % vectorized
 
@@ -54,15 +63,15 @@ y = h*x;                            % blurred image (vector)
 y_2d = reshape(y,size(x_2d));     % blurred image (2D);
 % y_2d = imnoise(y_2d_b,'gaussian',0,0.01);  % noisy image (2D);
 % y = y_2d(:);                               % noisy image (vector);
-figure, imagesc(x_2d); title('original'); caxis([0,1]);
-figure, imagesc(y_2d); title('degraded'); caxis([0,1]);
+figure('Position',[500,500,300,300]),imagesc(x_2d);title('original');caxis([0,1]);
+figure('Position',[500,500,300,300]),imagesc(y_2d);title('degraded');caxis([0,1]);
 
 
 %% non-blind deconvolution (without noise, known y,h, get x)
 opt.linesearch = 1; % 1:wolfe, 2:backtracking
 opt.rho = 0.5;      % param for backtracking line search
-opt.tol = 10^(-5);  % param for stopping criteria
-opt.maxiter = 10^3; % param for max iteration
+opt.tol = 10^(-6);  % param for stopping criteria
+opt.maxiter = 2000; % param for max iteration
 opt.lambda = 0.01;    % param for regularizing param
 opt.c = c;          % param for CLS, regularizing matrix
 opt.vis = 0;        % param for display, 0:nothing,1:log,2:log+figure
@@ -73,15 +82,22 @@ x0 = y;
 
 %%% ISTA
 fprintf('== LASSO with ISTA\n');
-[x_ista_i] = opt_ista_lasso(0,x0,opt,y,h);
-figure, imagesc(reshape(x_ista_i,size(x_2d))); title('LASSO - ISTA'); caxis([0,1]);
+[x_ista_i] = opt_ista_lasso(h,y,x0,opt,0);
+figure('Position',[500,500,300,300]),imagesc(reshape(x_ista_i,size(x_2d)));title('LASSO - ISTA');caxis([0,1]);
 psnr_ista_i = psnr(x_2d,x_ista_i,1);
+fprintf('psnr: %.2f\n',psnr_ista_i);
+
+%%% FISTA
+fprintf('== LASSO with FISTA\n');
+[x_fista_i] = opt_fista_lasso(h,y,x0,opt,0);
+figure('Position',[500,500,300,300]),imagesc(reshape(x_fista_i,size(x_2d)));title('LASSO - FISTA');caxis([0,1]);
+psnr_ista_i = psnr(x_2d,x_fista_i,1);
 fprintf('psnr: %.2f\n',psnr_ista_i);
 
 %%% CLS
 opt.lambda = 0.1;    % param for CLS, regularizing param
 fprintf('== CLS with CG\n');
 [x_cls_i] = opt_cg(obj,x0,opt,y,h);
-figure, imagesc(reshape(x_cls_i,size(x_2d))); title('CLS - CG'); caxis([0,1]);
+figure('Position',[500,500,300,300]),imagesc(reshape(x_cls_i,size(x_2d)));title('CLS - CG');caxis([0,1]);
 psnr_cls_i = psnr(x_2d,x_cls_i,1);
 fprintf('psnr: %.2f\n',psnr_cls_i);
