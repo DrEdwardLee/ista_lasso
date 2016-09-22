@@ -23,8 +23,8 @@ Here we will compare the LASSO problem with ISTA and FISTA to CLS problem with C
 - Degradation model: y = Hx = HPb = Ab 
           where A = HP, P:representation matrix (P = I in my example)
 - Deconvolution: <br>
-   (1) LASSO: min_x ||y-Ab||2 + lambda*||b||1 <br>
-   (2) CLS: min_x 0.5||y-Hx||2 + 0.5*lambda*||Cx||2 <br>
+   (1) LASSO: min_x ||y-Ab||^2 + lambda*||b||1 <br>
+   (2) CLS: min_x 0.5||y-Hx||^2 + 0.5*lambda*||Cx||^2 <br>
 
 # Optimization methods
 Each approach is solved by a different numerical optimization method. ISTA/FISTA are used for LASSO problem and CG method is used for CLS. <br>
