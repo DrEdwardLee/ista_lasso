@@ -23,13 +23,16 @@ lambda = opt.lambda;
 maxiter = opt.maxiter; %10000;
 tol = opt.tol;
 vis = opt.vis;
+mode = opt.fistamode;
 
 % k-th (k=0) function, gradient, hessian
 objk  = func(x0,b,A,lambda);
 %gradk = grad(x0,b,A);
 xk = x0;
 yk = xk;
-%tk = 1;
+if mode == 1
+    tk = 1;
+end
 
 fprintf('%6s %9s %9s\n','iter','f','sparsity');
 fprintf('%6i %9.2e %9.2e\n',0,objk,nnz(xk)/numel(xk));
@@ -37,14 +40,19 @@ tic;
 for i = 1:maxiter
     x_old = xk;
     y_old = yk;
-    %t_old = tk;
+    if mode == 1
+        t_old = tk;
+    end
 
     yg = y_old - l*(AtA*y_old-A'*b); 
     %yg = y_old - l*A'*(A*y_old-b);
     xk = subplus(abs(yg)-lambda/L) .* sign(yg); % shrinkage operation
-    %tk = (1+sqrt(1+4*t_old*t_old))/2;
-    %yk = xk + (t_old-1)/tk*(xk-x_old);
-    yk = xk + i/(i+3) * (xk-x_old);
+    if mode == 1
+        tk = (1+sqrt(1+4*t_old*t_old))/2;
+        yk = xk + (t_old-1)/tk*(xk-x_old);
+    elseif mode == 2
+        yk = xk + i/(i+3) * (xk-x_old);
+    end
 
     if vis > 0
         fprintf('%6i %9.2e %9.2e\n',i,func(xk,b,A,lambda),nnz(xk)/numel(xk));
